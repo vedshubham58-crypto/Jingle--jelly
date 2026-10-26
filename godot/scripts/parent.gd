@@ -1,7 +1,7 @@
 extends Screen
 ## Grown-ups' corner: sound settings and what the app does with data (nothing).
 
-const VERSION := "0.2 test build"
+const VERSION := "0.2.1 test build"
 
 
 func layout() -> void:
@@ -10,6 +10,12 @@ func layout() -> void:
 	for id in ["sound", "music", "voice"]:
 		add_button(id, Rect2(W - 220, y, 170, 84), func() -> void: _toggle(id))
 		y += 120
+	add_button("ad", Rect2(W - 220, y, 170, 84), _test_ad)
+
+
+func _test_ad() -> void:
+	if not Ads.show_now(func() -> void: pass):
+		Audio.sfx("wrong")
 
 
 func _toggle(id: String) -> void:
@@ -33,6 +39,13 @@ func _draw() -> void:
 		var on: bool = Save.get(id)
 		Draw.button_face(self, r, 42, Draw.GREEN if on else Color("b8c0cc"), b.down)
 		Draw.text(self, r.get_center() + Vector2(0, 10 if b.down else 0), "ON" if on else "OFF", 40, Color.WHITE)
+	var ab := button("ad")
+	if not ab.is_empty():
+		var r: Rect2 = ab.rect
+		draw_string(Draw.font(), Vector2(50, r.get_center().y - 4), "Ads", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Draw.INK)
+		draw_string(Draw.font(), Vector2(50, r.get_center().y + 34), Ads.status().left(34), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("55617a"))
+		Draw.button_face(self, r, 42, Draw.BLUE, ab.down)
+		Draw.text(self, r.get_center() + Vector2(0, 10 if ab.down else 0), "TEST", 40, Color.WHITE)
 	var info := [
 		"Jingle Jelly is made for children aged 1 to 4.",
 		"",
@@ -43,10 +56,9 @@ func _draw() -> void:
 		"They only show between activities, never during play.",
 		"",
 		"Songs are traditional nursery rhymes.",
-		"",
 		"Version " + VERSION,
 	]
-	var y := 680.0
+	var y := 800.0
 	var f := Draw.font()
 	for line in info:
 		draw_string(f, Vector2(50, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color("55617a"))

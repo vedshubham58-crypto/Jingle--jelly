@@ -32,6 +32,7 @@ public class JellyAds extends GodotPlugin {
     private volatile InterstitialAd interstitial;
     private String interstitialId = "";
     private boolean loading;
+    private volatile String status = "not started";
 
     public JellyAds(Godot godot) {
         super(godot);
@@ -68,6 +69,12 @@ public class JellyAds extends GodotPlugin {
         });
     }
 
+    /** A short line for the grown-ups' corner: ready, loading, or the last error. */
+    @UsedByGodot
+    public String getStatus() {
+        return interstitial != null ? "ready" : status;
+    }
+
     @UsedByGodot
     public boolean isInterstitialReady() {
         return interstitial != null;
@@ -93,6 +100,7 @@ public class JellyAds extends GodotPlugin {
 
                 @Override
                 public void onAdFailedToShowFullScreenContent(@NonNull AdError error) {
+                    status = "show error " + error.getCode() + ": " + error.getMessage();
                     send("interstitial_closed");
                     load();
                 }
@@ -110,16 +118,21 @@ public class JellyAds extends GodotPlugin {
         Activity activity = getActivity();
         if (activity == null || interstitialId.isEmpty() || interstitial != null || loading) return;
         loading = true;
+        status = "loading";
         InterstitialAd.load(activity, interstitialId, new AdRequest.Builder().build(), new InterstitialAdLoadCallback() {
             @Override
             public void onAdLoaded(@NonNull InterstitialAd ad) {
                 interstitial = ad;
                 loading = false;
+                status = "ready";
             }
 
             @Override
             public void onAdFailedToLoad(@NonNull LoadAdError error) {
                 loading = false;
+                status = "error " + error.getCode() + ": " + error.getMessage();
+                // Try again in a minute, so a bad moment does not mean no ads all session.
+                activity.getWindow().getDecorView().postDelayed(JellyAds.this::load, 60_000);
             }
         });
     }
