@@ -29,7 +29,7 @@ func _ready() -> void:
 
 
 func layout() -> void:
-	add_back(func() -> void: main.show_screen("home"))
+	add_back(func() -> void: main.show_screen("games"))
 	jelly.size = 170
 	jelly.position = Vector2(W - 120, H - 40)
 
@@ -70,7 +70,7 @@ func tick(delta: float) -> void:
 			popped = 0
 			if round_i >= ROUNDS.size():
 				_finished = true
-				main.celebrate("home")
+				main.celebrate("games")
 			else:
 				_announce()
 	jelly.look = Vector2(-0.6, -0.6)

@@ -69,7 +69,7 @@ func _initialize() -> void:
 	var stars_before: int = root.get_node("Save").stars
 	await wait_until(func() -> bool: return root.get_node("Save").stars > stars_before, 5.0)
 	check(root.get_node("Save").stars == stars_before + 1, "bath: finishing gives a star")
-	check(await wait_until(func() -> bool: return main.current_name == "home", 6.0), "bath: back home after the celebration")
+	check(await wait_until(func() -> bool: return main.current_name == "games", 6.0), "bath: back to games after the celebration")
 
 	# Bubbles: pop the right colour every round.
 	var bub = main.show_screen("bubbles")
@@ -82,7 +82,59 @@ func _initialize() -> void:
 				bub.press(b.p)
 				break
 	check(bub._finished, "bubbles: all rounds finished")
-	check(await wait_until(func() -> bool: return main.current_name == "home", 6.0), "bubbles: back home after the celebration")
+	check(await wait_until(func() -> bool: return main.current_name == "games", 6.0), "bubbles: back to games after the celebration")
+
+	# Shapes: a wrong hole bounces back, the right holes finish every round.
+	var sh = main.show_screen("shapes")
+	await frames(2)
+	var wrong_hole: Vector2 = sh.holes.filter(func(h: Dictionary) -> bool: return h.kind != sh.pieces[0].kind)[0].p
+	sh.drop(0, wrong_hole)
+	check(not sh.pieces[0].placed, "shapes: wrong hole does not take the shape")
+	give_up = Time.get_ticks_msec() + 30000
+	while not sh._finished and Time.get_ticks_msec() < give_up:
+		await process_frame
+		if sh._between > 0:
+			continue
+		for i in sh.pieces.size():
+			if not sh.pieces[i].placed:
+				var kind: String = sh.pieces[i].kind
+				sh.drop(i, sh.holes.filter(func(h: Dictionary) -> bool: return h.kind == kind)[0].p)
+				break
+	check(sh._finished, "shapes: all rounds finished")
+	check(await wait_until(func() -> bool: return main.current_name == "games", 6.0), "shapes: back to games after the celebration")
+
+	# Feed Jelly: the wrong fruit is refused, the right ones are counted.
+	var fd = main.show_screen("feed")
+	await frames(2)
+	for i in fd.fruits.size():
+		if fd.fruits[i].kind != fd.target():
+			fd.feed(i)
+			break
+	check(fd.eaten == 0, "feed: wrong fruit is refused")
+	give_up = Time.get_ticks_msec() + 30000
+	while not fd._finished and Time.get_ticks_msec() < give_up:
+		await process_frame
+		if fd._between > 0:
+			continue
+		for i in fd.fruits.size():
+			if not fd.fruits[i].eaten and fd.fruits[i].kind == fd.target():
+				fd.feed(i)
+				break
+	check(fd._finished, "feed: all rounds finished")
+	check(await wait_until(func() -> bool: return main.current_name == "games", 6.0), "feed: back to games after the celebration")
+
+	# Balloon ABC: pop the target letter every round.
+	var bal = main.show_screen("balloons")
+	await frames(2)
+	give_up = Time.get_ticks_msec() + 120000
+	while not bal._finished and Time.get_ticks_msec() < give_up:
+		await process_frame
+		for b in bal.balloons:
+			if b.letter == bal.target() and b.p.y < bal.H - 40 and bal._between <= 0:
+				bal.press(b.p)
+				break
+	check(bal._finished, "balloons: all rounds finished")
+	check(await wait_until(func() -> bool: return main.current_name == "games", 6.0), "balloons: back to games after the celebration")
 
 	# Parent gate: wrong code resets, right code opens grown-ups' corner.
 	var gate = main.show_screen("gate")

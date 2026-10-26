@@ -17,7 +17,7 @@ OUT = ROOT / "godot" / "audio"
 rng = np.random.default_rng(7)
 
 # Song keys (pitch class of the tonic) for the automatic chords.
-KEYS = {"twinkle": 0, "bus": 5, "farm": 7}
+KEYS = {"twinkle": 0, "bus": 5, "farm": 7, "baa": 0, "boat": 0, "spider": 0, "mary": 0, "body": 0}
 
 
 def hz(midi):
@@ -228,6 +228,14 @@ def effects():
         add(s, sweep(900, 2200, 0.04, 0.15, decay=0.015), rng.uniform(0, 1.0))
     fx["splash"] = s
     fx["wrong"] = sweep(330, 220, 0.3, 0.35, decay=0.15)
+    s = np.zeros(int(0.5 * RATE))
+    for k in range(3):
+        add(s, noise(0.07, 0.4, 0.03, lowpass=0.7), 0.14 * k)
+        add(s, sweep(160, 110, 0.07, 0.3, decay=0.03), 0.14 * k)
+    fx["munch"] = s
+    s = sweep(300, 900, 0.12, 0.5, decay=0.05)
+    add(s, bell(91, 0.1, 0.25), 0.03)
+    fx["snap"] = s
     return fx
 
 

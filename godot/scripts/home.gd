@@ -1,5 +1,5 @@
 extends Screen
-## Home: Jelly and friends dance to the music; three big picture buttons.
+## Home: Jelly and friends dance to the music; big Songs and Games buttons.
 
 const BPM := 100.0
 const HELLO := ["Hi! I'm Jelly!", "Let's play!", "Hee hee! That tickles!", "Want to sing a song?"]
@@ -31,12 +31,11 @@ func layout() -> void:
 	jelly.position = Vector2(W / 2, base)
 	friends[0].position = Vector2(W / 2 - 220, base + 22)
 	friends[1].position = Vector2(W / 2 + 220, base + 22)
-	var bw := (W - 80) / 3.0
-	var bh := 230.0
-	var y := H - bh - 70
-	add_button("songs", Rect2(20, y, bw - 10, bh), func() -> void: main.show_screen("songs"))
-	add_button("bath", Rect2(20 + bw + 10, y, bw - 10, bh), func() -> void: main.show_screen("bath"))
-	add_button("bubbles", Rect2(20 + 2 * (bw + 10), y, bw - 10, bh), func() -> void: main.show_screen("bubbles"))
+	var bw := (W - 70) / 2.0
+	var bh := 240.0
+	var y := H - bh - 60
+	add_button("songs", Rect2(25, y, bw, bh), func() -> void: main.show_screen("songs"))
+	add_button("games", Rect2(45 + bw, y, bw, bh), func() -> void: main.show_screen("games"))
 	add_button("parent", Rect2(W - 112, 34, 88, 88), func() -> void: main.show_screen("gate"))
 
 
@@ -109,8 +108,7 @@ func _draw() -> void:
 		draw_arc(lc + Vector2(0, -6), 14, PI, TAU, 16, Color("9aa3b5"), 7, true)
 		Draw.rounded_rect(self, Rect2(lc + Vector2(-20, -6), Vector2(40, 30)), 7, Color("9aa3b5"))
 	_draw_card("songs", "Songs", Draw.PINK)
-	_draw_card("bath", "Bath", Draw.BLUE)
-	_draw_card("bubbles", "Bubbles", Draw.GREEN)
+	_draw_card("games", "Games", Draw.BLUE)
 
 
 func _flower(p: Vector2, col: Color) -> void:
@@ -145,15 +143,10 @@ func _draw_card(id: String, label: String, col: Color) -> void:
 		"songs":
 			draw_circle(ic, 62, Color(1, 1, 1, 0.25))
 			Draw.note(self, ic + Vector2(-26, 26), 70, Color.WHITE, true)
-		"bath":
+		"games":
 			draw_circle(ic, 62, Color(1, 1, 1, 0.25))
-			Draw.rounded_rect(self, Rect2(ic + Vector2(-52, -2), Vector2(104, 44)), 22, Color.WHITE)
-			draw_rect(Rect2(ic + Vector2(-58, -6), Vector2(116, 12)), Color.WHITE)
-			for k in 3:
-				Draw.bubble(self, ic + Vector2(-30 + 28 * k, -22 - 10 * (k % 2)), 15, Color("d8f3ff"))
-		"bubbles":
-			draw_circle(ic, 62, Color(1, 1, 1, 0.25))
-			Draw.bubble(self, ic + Vector2(-18, 10), 30, Draw.RED)
-			Draw.bubble(self, ic + Vector2(26, -14), 24, Draw.YELLOW)
-			Draw.bubble(self, ic + Vector2(16, 32), 16, Draw.BLUE)
-	Draw.text(self, Vector2(r.get_center().x, r.end.y - 38), label, 40, Color.WHITE, col.darkened(0.3), 10)
+			Draw.bubble(self, ic + Vector2(-34, -20), 26, Draw.RED)
+			Draw.shape(self, "star", ic + Vector2(30, -22), 30, Draw.YELLOW)
+			Draw.balloon(self, ic + Vector2(-20, 28), 22, Draw.GREEN)
+			Draw.fruit(self, "apple", ic + Vector2(32, 32), 26)
+	Draw.text(self, Vector2(r.get_center().x, r.end.y - 38), label, 48, Color.WHITE, col.darkened(0.3), 10)

@@ -6,7 +6,11 @@ const SCREENS := {
 	"songs": "res://scripts/songs.gd",
 	"player": "res://scripts/song_player.gd",
 	"bath": "res://scripts/bath.gd",
+	"games": "res://scripts/games.gd",
 	"bubbles": "res://scripts/bubbles.gd",
+	"shapes": "res://scripts/shapes.gd",
+	"feed": "res://scripts/feed.gd",
+	"balloons": "res://scripts/balloons.gd",
 	"gate": "res://scripts/parent_gate.gd",
 	"parent": "res://scripts/parent.gd",
 }
@@ -33,7 +37,7 @@ func show_screen(name: String, arg: Variant = null) -> Screen:
 	add_child(s)
 	current = s
 	current_name = name
-	Audio.home_music(name in ["home", "songs"])
+	Audio.home_music(name in ["home", "songs", "games"])
 	s.modulate.a = 0.0
 	create_tween().tween_property(s, "modulate:a", 1.0, 0.18)
 	return s
@@ -59,5 +63,7 @@ func _notification(what: int) -> void:
 					get_tree().quit()
 			"player":
 				show_screen("songs")
+			"bath", "bubbles", "shapes", "feed", "balloons":
+				show_screen("games")
 			_:
 				show_screen("home")

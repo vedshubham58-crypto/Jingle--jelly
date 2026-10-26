@@ -30,7 +30,7 @@ func _ready() -> void:
 
 
 func layout() -> void:
-	add_back(func() -> void: main.show_screen("home"))
+	add_back(func() -> void: main.show_screen("games"))
 	duck_x = W * 0.7
 
 
@@ -143,7 +143,7 @@ func tick(delta: float) -> void:
 		if rinsing <= 0 and not _finished:
 			_finished = true
 			foam.clear()
-			main.celebrate("home")
+			main.celebrate("games")
 	for d in drops:
 		d.p += d.v * delta
 	drops = drops.filter(func(d: Dictionary) -> bool: return d.p.y < H)

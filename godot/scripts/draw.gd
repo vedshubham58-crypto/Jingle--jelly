@@ -143,3 +143,94 @@ static func bubble(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
 	ci.draw_arc(c, r, 0, TAU, 40, Color(col.lightened(0.3), 0.95), max(2.0, r * 0.08), true)
 	ellipse(ci, c + Vector2(-r * 0.35, -r * 0.4), r * 0.28, r * 0.16, Color(1, 1, 1, 0.8), -0.6)
 	ci.draw_circle(c + Vector2(r * 0.4, r * 0.35), r * 0.07, Color(1, 1, 1, 0.6))
+
+
+static func shape_points(kind: String, c: Vector2, r: float) -> PackedVector2Array:
+	match kind:
+		"square":
+			return rounded_rect_points(Rect2(c - Vector2(r, r) * 0.86, Vector2(r, r) * 1.72), r * 0.18)
+		"triangle":
+			var pts := PackedVector2Array()
+			for i in 3:
+				var a := -PI / 2 + TAU * i / 3
+				pts.append(c + Vector2(cos(a), sin(a) + 0.25) * r * 1.08)
+			return pts
+		"star":
+			return star_points(c, r * 1.08, r * 0.5)
+		"heart":
+			var pts := PackedVector2Array()
+			for i in 48:
+				var a := TAU * i / 48
+				var x := 16 * pow(sin(a), 3)
+				var y := -(13 * cos(a) - 5 * cos(2 * a) - 2 * cos(3 * a) - cos(4 * a))
+				pts.append(c + Vector2(x, y + 2) * r / 16.5)
+			return pts
+	return ellipse_points(c, r, r, 40)
+
+
+static func shape(ci: CanvasItem, kind: String, c: Vector2, r: float, col: Color) -> void:
+	ci.draw_colored_polygon(shape_points(kind, c + Vector2(0, r * 0.08), r), col.darkened(0.25))
+	ci.draw_colored_polygon(shape_points(kind, c, r), col)
+	ellipse(ci, c + Vector2(-r * 0.3, -r * 0.35), r * 0.22, r * 0.12, Color(1, 1, 1, 0.45), -0.6)
+
+
+static func hole(ci: CanvasItem, kind: String, c: Vector2, r: float) -> void:
+	ci.draw_colored_polygon(shape_points(kind, c, r * 1.06), Color(0, 0, 0, 0.32))
+	ci.draw_colored_polygon(shape_points(kind, c + Vector2(0, r * 0.1), r * 0.96), Color(0, 0, 0, 0.18))
+
+
+static func balloon(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	var string_top := c + Vector2(0, r * 1.18)
+	var pts := PackedVector2Array()
+	for i in 12:
+		pts.append(string_top + Vector2(sin(i * 0.9) * r * 0.08, i * r * 0.12))
+	ci.draw_polyline(pts, Color(1, 1, 1, 0.9), max(2.0, r * 0.03), true)
+	ci.draw_colored_polygon(ellipse_points(c, r * 0.9, r * 1.1, 40), col)
+	ci.draw_colored_polygon(PackedVector2Array([string_top + Vector2(-r * 0.12, r * 0.06), string_top + Vector2(r * 0.12, r * 0.06), string_top + Vector2(0, -r * 0.1)]), col.darkened(0.15))
+	ellipse(ci, c + Vector2(-r * 0.38, -r * 0.45), r * 0.18, r * 0.3, Color(1, 1, 1, 0.45), 0.4)
+
+
+static func fruit(ci: CanvasItem, kind: String, c: Vector2, r: float) -> void:
+	match kind:
+		"apple":
+			ci.draw_circle(c + Vector2(-r * 0.3, 0), r * 0.68, RED)
+			ci.draw_circle(c + Vector2(r * 0.3, 0), r * 0.68, RED)
+			ci.draw_circle(c + Vector2(0, r * 0.2), r * 0.7, RED)
+			ci.draw_line(c + Vector2(0, -r * 0.55), c + Vector2(r * 0.08, -r * 0.95), Color("6b3e1f"), r * 0.12)
+			ellipse(ci, c + Vector2(r * 0.32, -r * 0.82), r * 0.26, r * 0.12, GREEN, -0.5)
+			ellipse(ci, c + Vector2(-r * 0.4, -r * 0.2), r * 0.15, r * 0.24, Color(1, 1, 1, 0.45), 0.4)
+		"banana":
+			var pts := PackedVector2Array()
+			for i in 21:
+				var a := PI * 0.15 + PI * 0.7 * i / 20.0
+				pts.append(c + Vector2(cos(a) * r * 1.0, sin(a) * r * 0.9 - r * 0.45))
+			for i in 21:
+				var a := PI * 0.85 - PI * 0.7 * i / 20.0
+				pts.append(c + Vector2(cos(a) * r * 0.85, sin(a) * r * 0.5 - r * 0.35))
+			ci.draw_colored_polygon(pts, YELLOW)
+			ci.draw_polyline(pts, Color("e0a800"), r * 0.06, true)
+			ci.draw_circle(pts[0], r * 0.08, Color("6b3e1f"))
+		"strawberry":
+			var pts := PackedVector2Array([c + Vector2(-r * 0.85, -r * 0.45), c + Vector2(r * 0.85, -r * 0.45), c + Vector2(r * 0.55, r * 0.4), c + Vector2(0, r * 0.95), c + Vector2(-r * 0.55, r * 0.4)])
+			ci.draw_colored_polygon(pts, Color("ff3b5c"))
+			ci.draw_circle(c + Vector2(-r * 0.42, -r * 0.4), r * 0.43, Color("ff3b5c"))
+			ci.draw_circle(c + Vector2(r * 0.42, -r * 0.4), r * 0.43, Color("ff3b5c"))
+			for i in 7:
+				ellipse(ci, c + Vector2(-r * 0.45 + (i % 4) * r * 0.3, -r * 0.2 + (i / 4) * r * 0.4 + (i % 2) * r * 0.1), r * 0.05, r * 0.08, Color("ffe27a"))
+			for k in 4:
+				var a := PI + PI * (k + 0.5) / 4
+				ellipse(ci, c + Vector2(0, -r * 0.78) + Vector2(cos(a), sin(a) * 0.4) * r * 0.36, r * 0.24, r * 0.1, GREEN, a)
+		"orange":
+			ci.draw_circle(c, r * 0.85, ORANGE)
+			ci.draw_circle(c + Vector2(r * 0.1, -r * 0.8), r * 0.08, Color("6b3e1f"))
+			ellipse(ci, c + Vector2(r * 0.35, -r * 0.85), r * 0.25, r * 0.1, GREEN, -0.3)
+			ellipse(ci, c + Vector2(-r * 0.35, -r * 0.3), r * 0.16, r * 0.24, Color(1, 1, 1, 0.4), 0.4)
+		"grapes":
+			for i in 6:
+				var row: int = [0, 0, 0, 1, 1, 2][i]
+				var col: int = [0, 1, 2, 0, 1, 0][i]
+				var n: int = 3 - row
+				ci.draw_circle(c + Vector2((col - (n - 1) / 2.0) * r * 0.55, -r * 0.35 + row * r * 0.48), r * 0.33, PURPLE)
+				ci.draw_circle(c + Vector2((col - (n - 1) / 2.0) * r * 0.55 - r * 0.1, -r * 0.45 + row * r * 0.48), r * 0.09, Color(1, 1, 1, 0.45))
+			ci.draw_line(c + Vector2(0, -r * 0.65), c + Vector2(r * 0.1, -r * 1.0), Color("6b3e1f"), r * 0.1)
+			ellipse(ci, c + Vector2(r * 0.35, -r * 0.88), r * 0.24, r * 0.1, GREEN, -0.4)

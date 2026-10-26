@@ -1,7 +1,7 @@
 extends Screen
 ## Grown-ups' corner: sound settings and what the app does with data (nothing).
 
-const VERSION := "0.1 test build"
+const VERSION := "0.2 test build"
 
 
 func layout() -> void:

@@ -20,6 +20,18 @@ var _animal_bounce := 0.0
 var _road := 0.0
 var _star_pulse := 0.0
 var _bg_stars: Array[Vector2] = []
+var _bags := 0
+var _spider := 0.0  # 0 bottom of the spout, 1 top
+var _spider_goal := 0.0
+var _rain := 0.0
+var _sun := 0.0
+var _row := 0.0
+var _fish: Array[Dictionary] = []
+var _part := ""  # body part being sung
+var _part_glow := 0.0
+var _walk := 0.0
+
+const PARTS := ["head", "shoulders", "knees", "toes", "eyes", "ears", "mouth", "nose"]
 
 
 func _ready() -> void:
@@ -99,6 +111,15 @@ func tick(delta: float) -> void:
 	_horn = max(0.0, _horn - delta * 2.0)
 	_animal_bounce = max(0.0, _animal_bounce - delta * 3.0)
 	_star_pulse = max(0.0, _star_pulse - delta * 3.0)
+	_row = max(0.0, _row - delta * 2.0)
+	_part_glow = max(0.0, _part_glow - delta * 0.8)
+	_spider = move_toward(_spider, _spider_goal, delta * (0.5 if _spider_goal > _spider else 1.5))
+	_sun = max(0.0, _sun - delta * 0.08)
+	if not paused:
+		_walk += delta
+	for f in _fish:
+		f.t += delta
+	_fish = _fish.filter(func(f: Dictionary) -> bool: return f.t < 1.4)
 	for f in _fx:
 		f.p += f.v * delta
 		f.v.y += f.g * delta
@@ -125,6 +146,70 @@ func _on_word(w: Dictionary) -> void:
 				_float_word(word.capitalize() + "!", _animal_pos() + Vector2(randf_range(-90, 90), -220), Draw.PINK)
 		"twinkle":
 			_star_pulse = 1.0
+		"baa":
+			_animal_bounce = 1.0
+			if word == "baa":
+				_float_word("Baa!", _animal_pos() + Vector2(randf_range(-80, 80), -200), Draw.PINK)
+			elif word == "bags" or (word == "full" and _bags < 3):
+				_bags = min(3, _bags + (1 if word == "bags" else 2))
+		"boat":
+			_row = 1.0
+			if word in ["mer-", "mer"]:
+				_jump_fish()
+		"spider":
+			if word in ["climbed", "up", "spout", "gain"]:
+				_spider_goal = min(1.0, _spider_goal + 0.25)
+				if word == "climbed":
+					_rain = 0.0
+			elif word in ["down", "rain", "washed", "out"] and w.line == 1:
+				_rain = 1.0
+				_spider_goal = 0.0
+			elif word == "sun":
+				_sun = 1.0
+				_rain = 0.0
+		"mary":
+			if word == "lamb":
+				_animal_bounce = 1.0
+				_float_word("Baa!", _lamb_pos() + Vector2(0, -150), Draw.PINK)
+			elif word == "snow":
+				for k in 3:
+					_sparkle(Vector2(randf_range(100, W - 100), H * 0.3))
+		"body":
+			if word in PARTS:
+				_part = word
+				_part_glow = 1.0
+				_float_word(word.capitalize() + "!", _part_pos(word) + Vector2(0, -60), Draw.PURPLE)
+
+
+func _jump_fish() -> void:
+	_fish.append({"x": randf_range(120, W - 120), "t": 0.0, "c": [Draw.ORANGE, Draw.PINK, Draw.YELLOW].pick_random()})
+
+
+func _lamb_pos() -> Vector2:
+	return Vector2(W * 0.3 + sin(_walk * 0.6) * W * 0.12, H * 0.55)
+
+
+## Where each body part is on the child in "Head, Shoulders, Knees and Toes".
+func _part_pos(part: String) -> Vector2:
+	var c := Vector2(W / 2 + 60, H * 0.2)
+	match part:
+		"head":
+			return c + Vector2(0, 40)
+		"eyes":
+			return c + Vector2(0, 110)
+		"ears":
+			return c + Vector2(-112, 120)
+		"nose":
+			return c + Vector2(0, 140)
+		"mouth":
+			return c + Vector2(0, 178)
+		"shoulders":
+			return c + Vector2(-110, 300)
+		"knees":
+			return c + Vector2(-50, 540)
+		"toes":
+			return c + Vector2(-60, 650)
+	return c
 
 
 func _float_word(s: String, p: Vector2, col: Color) -> void:
@@ -179,6 +264,35 @@ func press(p: Vector2) -> void:
 				Audio.sfx("swish")
 				return
 			_sparkle(p)
+		"baa", "mary":
+			var ap := _animal_pos() if song.id == "baa" else _lamb_pos()
+			if p.distance_to(ap) < 150:
+				_animal_bounce = 1.0
+				Audio.sfx("boing", randf_range(0.9, 1.2))
+				Voice.say("Baa!")
+				_float_word("Baa!", ap + Vector2(0, -170), Draw.PINK)
+				return
+			_sparkle(p)
+		"boat":
+			if p.y > H * 0.42:
+				_jump_fish()
+				Audio.sfx("splash", 1.4, -6.0)
+				return
+			_sparkle(p)
+		"spider":
+			_spider_goal = min(1.0, _spider_goal + 0.2)
+			Audio.sfx("boing", 1.5)
+			_sparkle(p)
+			return
+		"body":
+			for part in PARTS:
+				if p.distance_to(_part_pos(part)) < 55:
+					_part = part
+					_part_glow = 1.0
+					Voice.say(part.capitalize())
+					Audio.sfx("tap", 1.2)
+					return
+			_sparkle(p)
 		"farm":
 			if p.distance_to(_animal_pos()) < 160:
 				_animal_bounce = 1.0
@@ -197,6 +311,16 @@ func _draw() -> void:
 			_draw_night()
 		"bus":
 			_draw_bus_scene()
+		"baa":
+			_draw_baa()
+		"boat":
+			_draw_boat()
+		"spider":
+			_draw_spider()
+		"mary":
+			_draw_mary()
+		"body":
+			_draw_body()
 		_:
 			_draw_farm()
 	for f in _fx:
@@ -216,7 +340,10 @@ func _draw() -> void:
 		else:
 			draw_rect(Rect2(c + Vector2(-18, -20), Vector2(12, 40)), Draw.INK)
 			draw_rect(Rect2(c + Vector2(6, -20), Vector2(12, 40)), Draw.INK)
-	Draw.text(self, Vector2(W / 2, 78), song.title, 46, Color.WHITE, Color(0, 0, 0, 0.35), 12)
+	var ts := 46
+	while ts > 26 and Draw.text_width(song.title, ts) > W - 260:
+		ts -= 2
+	Draw.text(self, Vector2(W / 2, 78), song.title, ts, Color.WHITE, Color(0, 0, 0, 0.35), 12)
 
 
 func _draw_lyrics() -> void:
@@ -457,3 +584,193 @@ func _hill(y: float, rise: float) -> PackedVector2Array:
 		pts.append(Vector2(W * i / 20.0, y + rise - sin(PI * i / 20.0) * rise))
 	pts.append(Vector2(W, H))
 	return pts
+
+
+func _sheep(p: Vector2, s: float, wool: Color) -> void:
+	for k in 4:
+		draw_circle(p + Vector2(-90 + k * 60, 140) * s, 16 * s, Draw.INK)
+	for k in 9:
+		var a := TAU * k / 9
+		draw_circle(p + Vector2(cos(a) * 110, sin(a) * 60 + 60) * s, 52 * s, wool)
+	draw_circle(p + Vector2(0, 60) * s, 100 * s, wool)
+	var h := p + Vector2(-110, 10) * s
+	Draw.ellipse(self, h + Vector2(-48, -10) * s, 26 * s, 12 * s, Draw.INK, -0.4)
+	Draw.ellipse(self, h + Vector2(48, -10) * s, 26 * s, 12 * s, Draw.INK, 0.4)
+	Draw.ellipse(self, h, 56 * s, 62 * s, Draw.INK)
+	for k in 4:
+		draw_circle(h + Vector2(-30 + k * 20, -54) * s, 18 * s, wool)
+	draw_circle(h + Vector2(-20, 0) * s, 10 * s, Color.WHITE)
+	draw_circle(h + Vector2(20, 0) * s, 10 * s, Color.WHITE)
+	draw_circle(h + Vector2(-18, 2) * s, 5 * s, Draw.INK)
+	draw_circle(h + Vector2(22, 2) * s, 5 * s, Draw.INK)
+	Draw.ellipse(self, h + Vector2(-34, 24) * s, 10 * s, 6 * s, Draw.CHEEK)
+	Draw.ellipse(self, h + Vector2(34, 24) * s, 10 * s, 6 * s, Draw.CHEEK)
+
+
+func _meadow(sky: Color, grass: Color) -> void:
+	draw_rect(Rect2(0, 0, W, H), sky)
+	draw_circle(Vector2(W - 120, 230), 60, Color("fff07a"))
+	draw_colored_polygon(_hill(H * 0.4, 80), grass.lightened(0.15))
+	draw_rect(Rect2(0, H * 0.5, W, H * 0.5), grass)
+	for i in 8:
+		var fp := Vector2(40 + i * 95, H * 0.5 + 40 + (i % 3) * 30)
+		for k in 5:
+			var a := TAU * k / 5
+			draw_circle(fp + Vector2(cos(a), sin(a)) * 8, 7, [Color.WHITE, Draw.PINK, Draw.YELLOW][i % 3])
+
+
+func _draw_baa() -> void:
+	_meadow(Color("9fe0ff"), Color("6fcf4a"))
+	var ap := _animal_pos() + Vector2(0, -abs(sin(_animal_bounce * PI)) * 50)
+	_sheep(ap, 1.0, Color("3a3f52"))
+	for i in _bags:
+		var bp := Vector2(W - 150 - i * 0, H * 0.36 + i * 0) + Vector2(-i * 120 + 60, 0)
+		Draw.rounded_rect(self, Rect2(bp + Vector2(-45, -50), Vector2(90, 100)), 30, Color("e8d2a8"))
+		draw_circle(bp + Vector2(0, -50), 22, Color("d2b480"))
+		for k in 3:
+			draw_circle(bp + Vector2(-20 + k * 20, -60), 14, Color.WHITE)
+	Draw.text(self, Vector2(W / 2 + 70, H - 270), "Tap the sheep!", 32, Draw.INK)
+
+
+func _draw_boat() -> void:
+	draw_rect(Rect2(0, 0, W, H), Color("9fe0ff"))
+	draw_circle(Vector2(120, 220), 60, Color("fff07a"))
+	draw_colored_polygon(_hill(H * 0.3, 70), Color("8fe06a"))
+	var water := H * 0.42
+	draw_rect(Rect2(0, water, W, H - water), Color("3fa9ff"))
+	for row in 6:
+		var pts := PackedVector2Array()
+		for i in 25:
+			var x := W * i / 24.0
+			pts.append(Vector2(x, water + 40 + row * 70 + sin(x * 0.03 + t * 2 + row) * 8))
+		draw_polyline(pts, Color(1, 1, 1, 0.35), 4, true)
+	for f in _fish:
+		var k: float = f.t / 1.4
+		var fp := Vector2(f.x + k * 120, water + 120 - sin(k * PI) * 220)
+		Draw.ellipse(self, fp, 34, 20, f.c, -0.6 + k * 1.2)
+		draw_colored_polygon(PackedVector2Array([fp + Vector2(-30, 0).rotated(-0.6 + k * 1.2), fp + Vector2(-56, -18).rotated(-0.6 + k * 1.2), fp + Vector2(-56, 18).rotated(-0.6 + k * 1.2)]), f.c)
+		draw_circle(fp + Vector2(16, -6).rotated(-0.6 + k * 1.2), 4, Draw.INK)
+	# The boat with Jelly's friends rowing.
+	var rock := sin(t * 1.6) * 0.06
+	var bc := Vector2(W / 2 + 40, water + 30 + sin(t * 1.6) * 8)
+	draw_set_transform(bc, rock)
+	var oar := -0.5 + sin(_walk * 3.0) * 0.5
+	for side in [-1, 1]:
+		var o := Vector2(side * 60, -30)
+		draw_line(o, o + Vector2(side * 150, 70).rotated(oar * side), Color("a0663a"), 10)
+	draw_colored_polygon(PackedVector2Array([Vector2(-200, -40), Vector2(200, -40), Vector2(150, 50), Vector2(-150, 50)]), Draw.RED)
+	draw_rect(Rect2(-200, -50, 400, 18), Color("c9352b"))
+	draw_set_transform(Vector2.ZERO)
+	for i in 2:
+		var fp := bc + Vector2(-60 + i * 120, -60).rotated(rock)
+		Draw.ellipse(self, fp, 44, 50, [Draw.GREEN, Draw.BLUE][i])
+		draw_circle(fp + Vector2(-14, -8), 7, Draw.INK)
+		draw_circle(fp + Vector2(14, -8), 7, Draw.INK)
+		draw_arc(fp + Vector2(0, 6), 10, 0.2 * PI, 0.8 * PI, 8, Draw.INK, 3)
+	Draw.text(self, Vector2(W / 2 + 70, H - 270), "Tap the water for fish!", 30, Color.WHITE)
+
+
+func _draw_spider() -> void:
+	var sky := Color("9fe0ff").lerp(Color("7a8aa8"), _rain * 0.6)
+	draw_rect(Rect2(0, 0, W, H), sky)
+	if _sun > 0:
+		var sp := Vector2(W - 140, 200)
+		for i in 10:
+			var a := t + TAU * i / 10
+			draw_line(sp + Vector2(cos(a), sin(a)) * 80, sp + Vector2(cos(a), sin(a)) * 115, Color(1, 0.85, 0.2, _sun), 10)
+		draw_circle(sp, 70, Color(1, 0.92, 0.3, _sun))
+	# House wall and water spout.
+	draw_rect(Rect2(0, H * 0.18, 210, H), Color("ffd6a8"))
+	var spout_x := 170.0
+	var top := H * 0.2
+	var bottom := H * 0.62
+	draw_rect(Rect2(spout_x - 24, top, 48, bottom - top), Color("9aa3b5"))
+	draw_rect(Rect2(spout_x - 24, top, 48, 16), Color("7c8599"))
+	draw_rect(Rect2(spout_x - 24, bottom, 90, 40), Color("9aa3b5"))
+	draw_rect(Rect2(0, H * 0.64, W, H), Color("6fcf4a"))
+	# Rain.
+	if _rain > 0.05:
+		for i in 40:
+			var rx := fmod(i * 53.0 + t * 30, W)
+			var ry := fmod(i * 97.0 + t * 700, H * 0.64)
+			draw_line(Vector2(rx, ry), Vector2(rx - 6, ry + 26), Color(0.3, 0.55, 1.0, _rain), 4)
+	# The spider: legs, round body, big eyes.
+	var sp := Vector2(spout_x + 60, lerp(bottom - 40, top + 40, _spider))
+	draw_line(Vector2(sp.x, top - 30), sp, Color(1, 1, 1, 0.8), 2)
+	var wig := sin(t * 10) * 6
+	for side in [-1, 1]:
+		for k in 4:
+			var a := -0.7 + k * 0.45
+			var knee := sp + Vector2(side * 50, -20 + k * 14 + wig * side)
+			draw_line(sp + Vector2(side * 20, -10 + k * 8), knee, Color("3a2f5e"), 7)
+			draw_line(knee, knee + Vector2(side * 22, 26 + a * 4), Color("3a2f5e"), 7)
+	draw_circle(sp, 40, Color("5b4a9e"))
+	draw_circle(sp + Vector2(-14, -6), 12, Color.WHITE)
+	draw_circle(sp + Vector2(14, -6), 12, Color.WHITE)
+	draw_circle(sp + Vector2(-12, -4), 6, Draw.INK)
+	draw_circle(sp + Vector2(16, -4), 6, Draw.INK)
+	draw_arc(sp + Vector2(0, 12), 10, 0.2 * PI, 0.8 * PI, 8, Color.WHITE, 3)
+	Draw.text(self, Vector2(W / 2 + 70, H - 270), "Tap to help it climb!", 32, Draw.INK)
+
+
+func _draw_mary() -> void:
+	_meadow(Color("bfeaff"), Color("7fd85a"))
+	var mp := _lamb_pos() + Vector2(220, -40)
+	# Mary.
+	var g := mp + Vector2(0, Screen.hop(_walk, 112, 10))
+	draw_colored_polygon(PackedVector2Array([g + Vector2(-70, 160), g + Vector2(70, 160), g + Vector2(30, 40), g + Vector2(-30, 40)]), Draw.PINK)
+	draw_line(g + Vector2(-20, 160), g + Vector2(-20, 220), Draw.SKIN, 14)
+	draw_line(g + Vector2(20, 160), g + Vector2(20, 220), Draw.SKIN, 14)
+	draw_circle(g, 58, Draw.SKIN)
+	Draw.ellipse(self, g + Vector2(0, -36), 62, 34, Color("c0702a"))
+	Draw.ellipse(self, g + Vector2(-60, 10), 18, 44, Color("c0702a"))
+	Draw.ellipse(self, g + Vector2(60, 10), 18, 44, Color("c0702a"))
+	draw_circle(g + Vector2(-20, 4), 7, Draw.INK)
+	draw_circle(g + Vector2(20, 4), 7, Draw.INK)
+	Draw.ellipse(self, g + Vector2(-34, 22), 10, 6, Draw.CHEEK)
+	Draw.ellipse(self, g + Vector2(34, 22), 10, 6, Draw.CHEEK)
+	draw_arc(g + Vector2(0, 18), 12, 0.2 * PI, 0.8 * PI, 10, Color("c0503a"), 4)
+	var lp := _lamb_pos() + Vector2(0, -abs(sin(_animal_bounce * PI)) * 50 + Screen.hop(_walk + 0.2, 112, 8))
+	_sheep(lp, 0.7, Color.WHITE)
+	Draw.text(self, Vector2(W / 2 + 70, H - 270), "Tap the lamb!", 32, Draw.INK)
+
+
+func _draw_body() -> void:
+	draw_rect(Rect2(0, 0, W, H), Color("ffe9c4"))
+	for i in 6:
+		Draw.star(self, Vector2(60 + i * 120, 160 + (i % 2) * 40), 14, Color(1, 0.8, 0.3, 0.6), t * 0.5)
+	var c := Vector2(W / 2 + 60, H * 0.2)
+	var shirt := Draw.BLUE
+	# Legs and feet.
+	for side in [-1, 1]:
+		draw_line(c + Vector2(side * 50, 430), c + Vector2(side * 50, 640), Color("3a5ccc"), 46)
+		Draw.ellipse(self, c + Vector2(side * 60, 655), 48, 24, Draw.SKIN)
+		for k in 5:
+			draw_circle(c + Vector2(side * 60 + (k - 2) * 15 * side + side * 20, 640), 9, Draw.SKIN)
+	# Body and arms.
+	Draw.rounded_rect(self, Rect2(c + Vector2(-110, 250), Vector2(220, 200)), 60, shirt)
+	for side in [-1, 1]:
+		draw_line(c + Vector2(side * 100, 290), c + Vector2(side * 170, 440), shirt, 40)
+		draw_circle(c + Vector2(side * 172, 452), 24, Draw.SKIN)
+	# Head.
+	draw_circle(c + Vector2(-112, 120), 30, Draw.SKIN)
+	draw_circle(c + Vector2(112, 120), 30, Draw.SKIN)
+	draw_circle(c + Vector2(0, 120), 115, Draw.SKIN)
+	Draw.ellipse(self, c + Vector2(0, 40), 110, 50, Color("6b3e1f"))
+	draw_circle(c + Vector2(-38, 110), 13, Draw.INK)
+	draw_circle(c + Vector2(38, 110), 13, Draw.INK)
+	draw_circle(c + Vector2(-34, 105), 4.5, Color.WHITE)
+	draw_circle(c + Vector2(42, 105), 4.5, Color.WHITE)
+	Draw.ellipse(self, c + Vector2(0, 140), 12, 9, Color("e8a07a"))
+	Draw.ellipse(self, c + Vector2(-70, 150), 18, 10, Draw.CHEEK)
+	Draw.ellipse(self, c + Vector2(70, 150), 18, 10, Draw.CHEEK)
+	draw_arc(c + Vector2(0, 165), 24, 0.15 * PI, 0.85 * PI, 14, Color("c0503a"), 6)
+	# Glow on the part being sung.
+	if _part != "" and _part_glow > 0:
+		var gp := _part_pos(_part)
+		if _part == "shoulders" or _part == "knees" or _part == "toes" or _part == "ears" or _part == "eyes":
+			var mirror := gp
+			mirror.x = c.x + (c.x - gp.x)
+			Draw.ring(self, mirror, 52 + 10 * sin(t * 10), Color(1, 0.4, 0.8, _part_glow), 8)
+		Draw.ring(self, gp, 52 + 10 * sin(t * 10), Color(1, 0.4, 0.8, _part_glow), 8)
+	Draw.text(self, Vector2(W / 2 + 70, H - 270), "Tap a body part!", 32, Draw.INK)
