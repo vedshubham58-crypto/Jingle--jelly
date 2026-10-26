@@ -1,0 +1,5 @@
+.godot/
+*.apk
+/android/
+addons/jelly_ads/bin/
+build/
