@@ -23,7 +23,10 @@ func _ready() -> void:
 	randomize()
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
-	show_screen("home")
+	if Promo.wanted():
+		add_child(Promo.new(self))
+	else:
+		show_screen("home")
 
 
 func show_screen(name: String, arg: Variant = null) -> Screen:
